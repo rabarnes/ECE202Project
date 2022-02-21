@@ -56,10 +56,8 @@ class MainFrame(ttk.Frame):
 		self.refresh.start()
 
 	def refresh_plots(self):
-		#self.eeg_frame.update_plot()
-		while True:
-			time.sleep(0.5)
-			self.eeg_frame.update_plot()
+		self.eeg_frame.update_plot()
+		self.after(1000, self.refresh_plots)
 
 	def print_queue(self):
 		print(self.data_q)

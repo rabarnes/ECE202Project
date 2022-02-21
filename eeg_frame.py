@@ -4,7 +4,6 @@ import numpy as np
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import threading as thrd
 
 
 class EegFrame(tk.Frame):
@@ -36,10 +35,7 @@ class EegFrame(tk.Frame):
 			ax = self.canvas.figure.axes[0]
 			ax.set_xlim(x.min(), x.max())
 			ax.set_ylim(y.min(), y.max())
-			thread_info = f"Current Thread: {thrd.currentThread().getName()} - Active Thread Count:{thrd.active_count()}"
-			print(thread_info)
 			self.canvas.draw()
-			print("Success Draw")
 		except:
 			print("Failed to Refresh EEG Figure")
 
