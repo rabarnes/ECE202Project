@@ -8,7 +8,6 @@ import os
 import tkinter as tk
 from tkinter import ttk
 from eeg_frame import EegFrame
-from test_signal_generator import gen_sin_wave
 from signal_thread import SignalThread
 
 #sys.path.append('./')
