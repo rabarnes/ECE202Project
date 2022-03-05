@@ -94,7 +94,7 @@ function pong202()
     %% setup timers
     % set timer parameters here for each of the 3 timers
     dataStartDelay = 0;
-    dataPeriod = 1;
+    dataPeriod = 0.01;
     dataReps = 1;
 
     processStartDelay = 0;
@@ -116,7 +116,13 @@ function pong202()
 %         'TimerFcn', @tDataCallback, ...
 %         'BusyMode', 'queue');
     tData = timer('StartDelay', dataStartDelay, ...
-        'TimerFcn', @tDataCallback);
+        'Period', dataPeriod, ...
+        'ExecutionMode', 'fixedRate', ...
+        'TimerFcn', @tDataCallback, ...
+        'BusyMode', 'queue');
+    
+%     tData = timer('StartDelay', dataStartDelay, ...
+%         'TimerFcn', @tDataCallback);
 % 
 %     tProcess = timer('StartDelay', processStartDelay, ...
 %         'Period', processPeriod, ...
@@ -142,7 +148,9 @@ function pong202()
     deleteTimers;
     size(p1.t)
     size(p1.data)
-
+    %%%
+    calibrateP1;
+    p1.threshold
 
 
     % function to initialize connection to TCP port, should start the data
@@ -227,13 +235,19 @@ function pong202()
     % function to collect data from Intan
     function collectData
         % if twaveformdata has been closed already, just exit
+        fprintf("run "+twaveformdata.BytesAvailable+ "\tchunkCount="+chunkCounter+"\n");
+        
+        % reset
+%         amplifierData = 32768 * ones(numAmpChannels, framesPerBlock * 10);
+%         amplifierTimestamps = zeros(1, framesPerBlock * 10);
+%         amplifierTimestampsIndex = 1;
+        
         if twaveformdata == 0
             return;
         end
         
         % read waveform data in 10-block chunks
         if twaveformdata.BytesAvailable >= waveformBytes10Blocks
-            drawnow;
 
             % track which 10-block chunk has just come in; if there have
             % already been 10 blocks plotted, reset to 1
@@ -291,6 +305,7 @@ function pong202()
         p1.data = amplifierData(1,:);
         p2.t = amplifierTimestamps;
         p2.data = amplifierData(2,:);
+
     end
 
     function disconnect
@@ -313,6 +328,11 @@ function pong202()
         % instruct player to have eyes closed for t0 seconds
         % find average energyAlpha over each time period
         % calculate threshold
+
+        p1.data
+        %fft(p1.data)
+        plot(abs(fft(p1.data)))
+        xlim([1,100])
         p1.threshold = 0;
     end
 
