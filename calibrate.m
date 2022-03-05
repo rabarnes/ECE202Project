@@ -12,7 +12,7 @@ f = Fs*(0:(L/2))/L;
 plot(f, P1)
 
 bins = chooseBins(Fs, L, 10, 13);
-
+avg = sum(P1(bins)) / size(bins,1)
 
 
 
@@ -30,7 +30,7 @@ function bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq)
     bins = [];
     for binNum = 1:L/2
         binFreq = Fs/(2*L)*(2*(binNum-1));
-        if(binFreq < upBoundFreq && binFreq > lowBoundFreq)
+        if(binFreq <= upBoundFreq && binFreq >= lowBoundFreq)
             bins = [bins, binNum];
         end
     end

@@ -1,7 +1,7 @@
 close all; clc;
 
 Fs = 8000
-L = 4000
+L = 3000
 
 
 Y = fft(amplifier_data(8,1:L));
@@ -12,8 +12,7 @@ f = Fs*(0:(L/2))/L;
 plot(f, P1)
 
 bins = chooseBins(Fs, L, 10, 13);
-
-
+avg = sum(P1(bins))
 
 
 
@@ -23,7 +22,10 @@ bins = chooseBins(Fs, L, 10, 13);
 % inputs:   Fs - Sampling Frequency
 %           L  - Sample Size
 %           lowBoundFreq - lower bound of frequency
-%           upBoundFreq  - upper bound of frequ
+%           upBoundFreq  - upper bound of frequency
+% output:   bins - array of int indicating the bin number 
+%                  (matlab index)
+%
 function bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq)
     bins = [];
     for binNum = 1:L/2
