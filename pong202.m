@@ -318,8 +318,8 @@ function pong202()
     function dataProcess
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        p1.energyAlpha = calcEnergyAvg(p1.data, fs, 10, 13);
-        p2.energyAlpha = calcEnergyAvg(p2.data, fs, 10, 13);
+        p1.energyAlpha = calcEnergyAvg(p1.data, fs, fLow, fHigh);
+        p2.energyAlpha = calcEnergyAvg(p2.data, fs, fLow, fHigh);
        
 
         % calcEngeryAvg calculates the average of magnitude within the frequency
@@ -333,11 +333,11 @@ function pong202()
         function avg = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
             L = size(sampleData, 1);
             Y = fft(sampleData);
-            P2 = abs(Y/L);
+            P2 = Y/L;
             P1 = P2(1:L/2+1);
             P1(2:end-1) = 2*P1(2:end-1);
             bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-            avg = sum(P1(bins)) / size(bins,1);
+            avg = sum(P1(bins).^2) / size(bins,1);
         end
 
 
