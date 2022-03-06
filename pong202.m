@@ -566,28 +566,42 @@ function pong202()
     function processData
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        p1.energyAlpha = mean(fft(p1.data));
-        p2.energyAlpha = mean(fft(p2.data));
-        % compute fft of data
-        % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-%         p1.energyAlpha = calcEnergyAvg(p1.data, fs, 10, 13);
-%         p2.energyAlpha = calcEnergyAvg(p2.data, fs, 10, 13);
-%         p1.energyAlpha = calcEnergyAvg(p1.data, fs, fLow, fHigh);
-%         p2.energyAlpha = calcEnergyAvg(p2.data, fs, fLow, fHigh);
+        for i=1:size(amplifierData,1)
+            avg(i) = calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
+        end
+        fprintf("Avg1: "+avg(1)+"\n");
+        fprintf("Avg2: "+avg(2)+"\n");
+        p1.energyAlpha = avg(1);
+        p2.energyAlpha = avg(2);
+%         p1.energyAlpha = mean(fft(p1.data));
+%         p2.energyAlpha = mean(fft(p2.data));
     end
 
-%     % calcEngeryAvg calculates the average of magnitude within the frequency
-%     function avg = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
-%         L = size(sampleData, 1);
-%         Y = fft(sampleData);
-%         P2 = abs(Y/L);
-%         P2 = Y/L;
-%         P1 = P2(1:L/2+1);
-%         P1(2:end-1) = 2*P1(2:end-1);
-%         bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-%         avg = sum(P1(bins)) / size(bins,1);
-%         avg = sum(P1(bins).^2) / size(bins,1);
-%     end
+    % calcEngeryAvg calculates the average of magnitude within the frequency
+    function [avg, bins] = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
+        L = length(sampleData);
+        Y = fft(sampleData);
+        P2 = abs(Y/L);
+        P2 = Y/L;
+        P1 = P2(1:round(L/2+1));
+        P1(2:end-1) = 2*P1(2:end-1);
+        bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
+        avg = sum(P1(bins)) / size(bins,1);
+        % avg = sum(P1(bins).^2) / size(bins,1);
+    end
+
+    function bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq)
+        bins = [];
+        for binNum = 1:round(L/2)
+            binFreq = fs/(2*L)*(2*(binNum-1));
+            if(binFreq <= upBoundFreq && binFreq >= lowBoundFreq)
+                bins = [bins, binNum];
+            end
+        end
+        if(size(bins,1) == 0)
+            fprintf("Not enough resolution for bins!")
+        end
+    end
 
     function onDataTimer(~,~)
         collectData;
