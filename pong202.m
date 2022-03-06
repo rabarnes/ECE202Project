@@ -94,7 +94,7 @@ function pong202()
     %% setup timers
     % set timer parameters here for each of the 3 timers
     dataStartDelay = 0;
-    dataPeriod = 1;
+    dataPeriod = 0.01;
     dataReps = 1;
 
     processStartDelay = 0;
@@ -116,7 +116,13 @@ function pong202()
 %         'TimerFcn', @tDataCallback, ...
 %         'BusyMode', 'queue');
     tData = timer('StartDelay', dataStartDelay, ...
-        'TimerFcn', @tDataCallback);
+        'Period', dataPeriod, ...
+        'ExecutionMode', 'fixedRate', ...
+        'TimerFcn', @tDataCallback, ...
+        'BusyMode', 'queue');
+    
+%     tData = timer('StartDelay', dataStartDelay, ...
+%         'TimerFcn', @tDataCallback);
 % 
 %     tProcess = timer('StartDelay', processStartDelay, ...
 %         'Period', processPeriod, ...
@@ -142,7 +148,9 @@ function pong202()
     deleteTimers;
     size(p1.t)
     size(p1.data)
-
+    %%%
+    calibrateP1;
+    p1.threshold
 
 
     % function to initialize connection to TCP port, should start the data
@@ -227,13 +235,19 @@ function pong202()
     % function to collect data from Intan
     function collectData
         % if twaveformdata has been closed already, just exit
+        fprintf("run "+twaveformdata.BytesAvailable+ "\tchunkCount="+chunkCounter+"\n");
+        
+        % reset
+%         amplifierData = 32768 * ones(numAmpChannels, framesPerBlock * 10);
+%         amplifierTimestamps = zeros(1, framesPerBlock * 10);
+%         amplifierTimestampsIndex = 1;
+        
         if twaveformdata == 0
             return;
         end
         
         % read waveform data in 10-block chunks
         if twaveformdata.BytesAvailable >= waveformBytes10Blocks
-            drawnow;
 
             % track which 10-block chunk has just come in; if there have
             % already been 10 blocks plotted, reset to 1
@@ -291,6 +305,7 @@ function pong202()
         p1.data = amplifierData(1,:);
         p2.t = amplifierTimestamps;
         p2.data = amplifierData(2,:);
+
     end
 
     function disconnect
@@ -303,8 +318,54 @@ function pong202()
     function dataProcess
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        p1.energyAlpha = 0;
-        p2.energyAlpha = 0;
+        p1.energyAlpha = calcEnergyAvg(p1.data, fs, fLow, fHigh);
+        p2.energyAlpha = calcEnergyAvg(p2.data, fs, fLow, fHigh);
+       
+
+        % calcEngeryAvg calculates the average of magnitude within the frequency
+        % range bounded by lowBoundFreq and upBoundFreq.
+        % inputs:   sampleData - sample data
+        %           Fs - Sampling Frequency
+        %           lowBoundFreq - lower bound of frequency
+        %           upBoundFreq  - upper bound of frequency
+        % output:   avg - the average of magnitude of the frequency range
+        %
+        function avg = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
+            L = size(sampleData, 1);
+            Y = fft(sampleData);
+            P2 = Y/L;
+            P1 = P2(1:L/2+1);
+            P1(2:end-1) = 2*P1(2:end-1);
+            bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
+            avg = sum(P1(bins).^2) / size(bins,1);
+        end
+
+
+        % chooseBins returns the bins in which the frequencies
+        % bounded by lowBoundFreq and upBoundFreq contains, with
+        % given sampling frequency Fs and Sample size L.
+        % inputs:   Fs - Sampling Frequency
+        %           L  - Sample Size
+        %           lowBoundFreq - lower bound of frequency
+        %           upBoundFreq  - upper bound of frequency
+        % output:   bins - array of int indicating the bin number
+        %                  (matlab index)
+        %
+        function bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq)
+            bins = [];
+            for binNum = 1:L/2
+                binFreq = Fs/(2*L)*(2*(binNum-1));
+                if(binFreq <= upBoundFreq && binFreq >= lowBoundFreq)
+                    bins = [bins, binNum];
+                end
+            end
+            if(size(bins,1) == 0)
+                fprintf("Not enough resolution for bins!")
+            end
+        end
+
+
+
     end
 
     % calibrate player 1 threshold
@@ -313,6 +374,7 @@ function pong202()
         % instruct player to have eyes closed for t0 seconds
         % find average energyAlpha over each time period
         % calculate threshold
+
         p1.threshold = 0;
     end
 
