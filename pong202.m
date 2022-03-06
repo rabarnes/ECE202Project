@@ -1,18 +1,21 @@
-%% variable names and definitions
-% fLow: low end of alpha wave frequency spectrum (can be adjusted later)
-% fHigh: high end of alpha wave frequency spectrum (can be adjusted later)
-%
-% p1, p2: structure with parameters t, data, energyAlpha,
-% threshold; t is vector of time values corresponding to player 1 or
-% player 2 (i.e. p1, p2) for the Intan data; data is the vector of
-% amplitude values for the Intan data; energyAlpha is the amount of energy
-% between fLow-fHigh (alpha wave band); threshold is the threshold value
-% calculated in the calibration function
+%% variable names
+% tuning parameters
+% fLow: low end of frequency spectrum of interest (e.g. alpha wave band)
+% fHigh: high end of frequency spectrum of interest (e.g. alpha wave band)
+% dataPeriod: time between data collection attempts
+% ballVelocity: speed of the ball, should generally range 0.001-0.1
+% paddleVelocityFast: paddle movement speed when alpha waves not detected
+% paddleVelocitySlow: paddle movement speed when alpha waves detected
+% thresholdSkew: allows for higher/lower sensitivity threshold value
+% calibrationDuration: duration of recording time for each calibration step
 % 
-% fs: sample frequency
-%
-% paddleVelocitySlow: speed of paddle when alpha waves are detected
-% paddleVelocityFast: speed of paddle when alpha waves are not detected
+% p1,p2 struct
+% t: vector of timestamps for current EEG data
+% data: vector of timeseries amplitudes for current EEG data
+% energyAlpha: average energy between fLow, fHigh in current EEG data
+% threshold: comparison value to determine paddle speed
+% calibrate: set to 1 to save all data in calibrationData for calibration
+% calibrationData: stores past data values to be used for averaging
 %
 %% function names and definitions
 % connect(): make connection to TCP port
@@ -39,6 +42,9 @@
 function pong202()
     close all; clear; clc;
     delete(timerfindall);
+    % debug variables that can be made ouptuts to the function
+%     debugTime = [];
+%     debugData = [];
     %% --------------------------------------------------------------------
     % tuning parameters
     fLow = 7; fHigh = 13; % use alpha waves (7-13Hz) by default (can be modified later)
@@ -212,15 +218,12 @@ function pong202()
         start(tData);
         calibrateP1;
         calibrateP2;
-    %     display(p1.threshold);
-    %     display(p2.threshold);
+        display(p1.threshold);
+        display(p2.threshold);
     
         fprintf("\n--------------------------------------------------------------------\n")
         fprintf("STARTING GAME\n")
         start(tGame);
-        pause(10);
-        p1.energyAlpha = 10;
-        p2.energyAlpha = 10;
         pause(10);
         stop(tData);
         delete(tData);
@@ -310,7 +313,7 @@ function pong202()
         chunkCounter = 0;
 
         % start board running
-        fprintf("Streaming data...\n");
+        fprintf("streaming data...\n");
         write(tcommand, uint8('set runmode run'));
     end
 
@@ -349,43 +352,45 @@ function pong202()
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
-            end
-            % each block should contain 128 frames of data - process each
-            % of these one-by-one
-            for frame = 1:framesPerBlock
-                % expect 4 bytes to be timestamp as int32
-                [amplifierTimestamps(1, amplifierTimestampsIndex), rawIndex] = int32ReadFromArray(waveformArray, rawIndex);
-                amplifierTimestamps(1, amplifierTimestampsIndex) = timestep * amplifierTimestamps(1, amplifierTimestampsIndex);
-                % parse all bands of amplifier channels
-                for channel = 1:numAmpChannels
-                    if strcmp(currentPlotBand, 'Wide')
-                        % 2 bytes of wide, then 2 bytes of low (ignored)
-                        % then 2 bytes of high (ignored)
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
-                        rawIndex = rawIndex + (2 * 2);
-                    elseif strcmp(currentPlotBand, 'Low')
-                        % 2 bytes of wide (ignored), then 2 bytes of low,
-                        % then 2 bytes of high (ignored)
-                        rawIndex = rawIndex + 2;
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
-                        rawIndex = rawIndex + 2;
-                    else
-                        % 2 bytes of wide (ignored), then 2 bytes of low
-                        % (ignored), then 2 bytes of high
-                        rawIndex = rawIndex + (2 * 2);
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+          
+                % each block should contain 128 frames of data - process each
+                % of these one-by-one
+                for frame = 1:framesPerBlock
+                    % expect 4 bytes to be timestamp as int32
+                    [amplifierTimestamps(1, amplifierTimestampsIndex), rawIndex] = int32ReadFromArray(waveformArray, rawIndex);
+                    amplifierTimestamps(1, amplifierTimestampsIndex) = timestep * amplifierTimestamps(1, amplifierTimestampsIndex);
+                    % parse all bands of amplifier channels
+                    for channel = 1:numAmpChannels
+                        if strcmp(currentPlotBand, 'Wide')
+                            % 2 bytes of wide, then 2 bytes of low (ignored)
+                            % then 2 bytes of high (ignored)
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                            rawIndex = rawIndex + (2 * 2);
+                        elseif strcmp(currentPlotBand, 'Low')
+                            % 2 bytes of wide (ignored), then 2 bytes of low,
+                            % then 2 bytes of high (ignored)
+                            rawIndex = rawIndex + 2;
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                            rawIndex = rawIndex + 2;
+                        else
+                            % 2 bytes of wide (ignored), then 2 bytes of low
+                            % (ignored), then 2 bytes of high
+                            rawIndex = rawIndex + (2 * 2);
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                        end
                     end
                 end
                 amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
             end
+            amplifierData = 0.195 * (amplifierData - 32768);
+
+            % 
+            p1.t = amplifierTimestamps;
+            p1.data = amplifierData(1,:);
+            p2.t = amplifierTimestamps;
+            p2.data = amplifierData(2,:);
+            processData;
         end
-
-        amplifierData = 0.195 * (amplifierData - 32768);
-
-        p1.t = amplifierTimestamps;
-        p1.data = amplifierData(1,:);
-        p2.t = amplifierTimestamps;
-        p2.data = amplifierData(2,:);
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
 
@@ -395,28 +400,25 @@ function pong202()
     function processData
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        for i=1:size(amplifierData,1)
-            avg(i) = calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
-        end
-        fprintf("Avg1: "+avg(1)+"\n");
-        fprintf("Avg2: "+avg(2)+"\n");
-        p1.energyAlpha = avg(1);
-        p2.energyAlpha = avg(2);
-%         p1.energyAlpha = mean(fft(p1.data));
-%         p2.energyAlpha = mean(fft(p2.data));
+        p1.energyAlpha=calcEnergyAvg(p1.data, fs, fLow, fHigh);
+%         fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
+        p2.energyAlpha=calcEnergyAvg(p2.data,fs, fLow, fHigh);
+%         fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
+%         debugData = [debugData p1.energyAlpha];
+%         debugTime = [debugTime p1.t];
+%         debugData = [debugData p1.data];
     end
 
-    % calcEngeryAvg calculates the average of magnitude within the frequency
+    % calcEnergyAvg calculates the average of magnitude within the frequency
     function [avg, bins] = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
         L = length(sampleData);
         Y = fft(sampleData);
         P2 = abs(Y/L);
-        P2 = Y/L;
         P1 = P2(1:round(L/2+1));
         P1(2:end-1) = 2*P1(2:end-1);
         bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-        avg = sum(P1(bins)) / size(bins,1);
-        % avg = sum(P1(bins).^2) / size(bins,1);
+%         avg = sum(P1(bins)) / size(bins,1);
+        avg = mean(P1(bins).^2);
     end
 
     function bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq)
