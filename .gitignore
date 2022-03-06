@@ -1,2 +1,3 @@
 *.bak
+*.asv
 __pycache__
