@@ -36,7 +36,7 @@
 % between the noise level (i.e. no alpha waves) and the alpha wave level
 %
 
-function pong202timer()
+function pong202()
     close all; clear; clc;
     delete(timerfindall);
     %% --------------------------------------------------------------------
