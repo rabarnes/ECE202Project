@@ -36,18 +36,15 @@
 % between the noise level (i.e. no alpha waves) and the alpha wave level
 %
 
+
 function pong202timer()
-    close all; clear; clc;
-    delete(timerfindall);
     %% --------------------------------------------------------------------
     % tuning parameters
     fLow = 7; fHigh = 13; % use alpha waves (7-13Hz) by default (can be modified later)
-    ballVelocity = 0.005; % ball speed
-    paddleVelocityFast = 0.01; % paddle rate when alpha waves not detected
-    paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
-    dataPeriod = 0.08; % time between data collection attempts
-    thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
-    calibrationDuration = 10; % time (seconds) for each calibration step
+    ballVelocity = 0.007;
+    paddleVelocityFast = 0.007;
+    paddleVelocitySlow = 0.04;
+    dataPeriod = 0.08;
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -88,7 +85,7 @@ function pong202timer()
         'calibrate', 0, ...
         'calibrationData', []);
 
-%     endGame = 0;
+    endGame = 0;
 
     %% --------------------------------------------------------------------
     %% initialize GUI
@@ -186,63 +183,37 @@ function pong202timer()
     %% --------------------------------------------------------------------
     % test commands
     % can add test commands here to test if code is working; example:
-%     gameTest;
-    fullTest;
+    connect;
+    start(tData);
+    start(tGame);
+    pause(15);
+    p1.energyAlpha = 10;
+    p2.energyAlpha = 10;
 
-    % full test, including connecting to TCP, calibration for both players,
-    % running game
-    function fullTest
-        connect;
-        start(tData);
-        calibrateP1;
-        calibrateP2;
-    %     display(p1.threshold);
-    %     display(p2.threshold);
-    
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("STARTING GAME\n")
-        start(tGame);
-        pause(10);
-        p1.energyAlpha = 10;
-        p2.energyAlpha = 10;
-        pause(10);
-        stop(tData);
-        delete(tData);
-    %     fprintf("waveformbytes10blocks: "+waveformBytes10Blocks+"\n");
-    end
-
-    % use gameTest to check if game is functioning correctly
-    function gameTest
-        start(tGame);
-        fprintf("both paddles fast\n");
-        pause(5);
-        fprintf("paddle 1 slow\n")
-        p1.energyAlpha = 10;
-        pause(5);
-        fprintf("both paddles slow\n");
-        p2.energyAlpha = 10;
-        pause(10);
-    end
+    pause(30);
+    stop(tData);
+    stop(tGame);
+    delete(tData);
+    delete(tGame);
+    fprintf("waveformbytes10blocks: "+waveformBytes10Blocks+"\n");
 
     %% --------------------------------------------------------------------
     % connect function
     % function to initialize connection to TCP port, should start the data
     % and process timers
     function connect
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("CONNECTING TO TCP PORT\n\n")
         % if initialized == 0, need to connect to TCP port
         if initialized == 0
             % connect to TCP port
             % start data collection and data processing timers
-            fprintf("connecting to TCP command server...\n");
+            fprintf("Connecting to TCP command server...\n");
             tcommand = tcpclient('localhost', 5000);
-            fprintf("connecting to TCP waveform server...\n");
+            fprintf("Connecting to TCP waveform server...\n");
             twaveformdata = tcpclient('localhost', 5001);
-            fprintf("clearing current TCP outputs...\n");
+            fprintf("Clearing current TCP outputs...\n");
             sendCommand('execute clearalldataoutputs');
     
-            fprintf("enabling channels...\n");
+            fprintf("Enabling channels...\n");
             sendCommand('get type');
             commandReturn = readCommand();
             if strcmp(commandReturn, 'Return: Type ControllerRecordUSB2')
@@ -269,7 +240,7 @@ function pong202timer()
                 sendCommand(commandString);
             end
     
-            fprintf("preparing MATLAB to start streaming...\n");
+            fprintf("Preparing MATLAB to start streaming...\n");
             pause(1);
     
             initialized = 1;
@@ -370,7 +341,7 @@ function pong202timer()
         p1.data = amplifierData(1,:);
         p2.t = amplifierTimestamps;
         p2.data = amplifierData(2,:);
-%         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
+        fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
 
     %% --------------------------------------------------------------------
@@ -420,48 +391,24 @@ function pong202timer()
         % instruct player to have eyes open for t0 seconds
         % instruct player to have eyes closed for t0 seconds
         % find average energyAlpha over each time period
-
-        % eyes open portion
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("STARTING PLAYER 1 CALIBRATION\n")
-        fprintf("\nplayer 1, keep your eyes open for the first part of the calibration\n")
-        fprintf("starting in:\n");
+        % calculate threshold
+        fprintf("player 1, keep your eyes open for the first part of the calibration\n")
+        fprintf("starting in: 3")
         pause(1);
-        fprintf("3\n");
+        fprintf(" 2");
         pause(1);
-        fprintf("2\n");
+        fprintf(" 1\n");
+                p1.calibrate = 1;
+        pause(10);
+        lowerThreshold = average(p1.calibrationData);
+        fprintf("player 1, keep your eyes closed for the second part of the calibration")
+        fprintf("starting in: 3")
         pause(1);
-        fprintf("1\n");
+        fprintf(" 2");
         pause(1);
-        fprintf("EYES OPEN\n");
-        p1.calibrate = 1;
-        pause(calibrationDuration);
-        p1.calibrate = 0;        
-        lowerThreshold = mean(p1.calibrationData);
-        fprintf("\nopen eye calculation complete\n")
-        pause(2);
-
-        % eyes closed portion
-        fprintf("\nplayer 1, keep your eyes closed for the second part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES CLOSED\n")
-        p1.calibrate = 1;
-        pause(calibrationDuration);
-        p1.calibrate = 0;        
-        upperThreshold = mean(p1.calibrationData);
-        fprintf("\nclosed eye calculation complete\n");
+        fprintf(" 1\n");
+        pause(10);
         
-        % calculate threshold value
-        p1.threshold = thresholdSkew*(lowerThreshold+upperThreshold);
-        fprintf("\nplayer 1 threshold calculated, player 1 calibration complete\n")
-        pause(1);
     end
 
     % calibrate player 2 threshold
@@ -470,46 +417,7 @@ function pong202timer()
         % instruct player to have eyes closed for t0 seconds
         % find average energyAlpha over each time period
         % calculate threshold
-        % eyes open portion
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("STARTING PLAYER 2 CALIBRATION\n")
-        fprintf("\nplayer 2, keep your eyes open for the first part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES OPEN\n")
-        p2.calibrate = 1;
-        pause(calibrationDuration);
-        p2.calibrate = 0;        
-        lowerThreshold = mean(p2.calibrationData);
-        fprintf("\nopen eye calculation complete\n")
-        
-        % eyes closed portion
-        fprintf("\nplayer 2, keep your eyes closed for the second part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES CLOSED\n")
-        p2.calibrate = 1;
-        pause(calibrationDuration);
-        p2.calibrate = 0;        
-        upperThreshold = mean(p2.calibrationData);
-        fprintf("\nclosed eye calculation complete\n");
-        
-        % calculate threshold value
-        p2.threshold = thresholdSkew*(lowerThreshold+upperThreshold);
-        fprintf("\nplayer 2 threshold calculated, player 2 calibration complete\n")
-        pause(1);
+        p2.threshold = 0;
     end
 
     %% --------------------------------------------------------------------
@@ -624,9 +532,9 @@ function pong202timer()
     %% --------------------------------------------------------------------
     % delete pong game
     function deletePong(~,~)
+        endGame = 1;
         stop(tGame);
         delete(tGame);
-        fprintf("\nGAME OVER\n\n")
     end
 
     %% --------------------------------------------------------------------
