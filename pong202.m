@@ -553,8 +553,9 @@ function pong202()
                             [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                         end
                     end
+                    amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
                 end
-                amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
+                
             end
             amplifierData = 0.195 * (amplifierData - 32768);
 
@@ -564,6 +565,7 @@ function pong202()
             p2.t = amplifierTimestamps;
             p2.data = amplifierData(2,:);
             processData;
+            amplifierTimestampsIndex = 1;
         end
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
