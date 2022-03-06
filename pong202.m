@@ -36,7 +36,7 @@
 % between the noise level (i.e. no alpha waves) and the alpha wave level
 %
 
-function pong202()
+function debugData = pong202()
     close all; clear; clc;
     delete(timerfindall);
     %% --------------------------------------------------------------------
@@ -70,6 +70,7 @@ function pong202()
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
     currentPlotBand = 1;
+    debugData = [];
 
     % define p1, p2
     p1 = struct('t',[], ...
@@ -163,7 +164,7 @@ function pong202()
                 p1.calibrate = 1; % start calibration
                 pause(calibrationDuration);
                 p1.calibrate = 0; % end calibration
-                display(p1.calibrationData);
+                % display(p1.calibrationData);
                 p1.lowerThreshold = mean(p1.calibrationData); % process calibration data
                 fprintf("Player 1 lowerThreshold: %f \n", p1.lowerThreshold)
                 p1.calibrationData = []; % clear calibration data after processing
@@ -539,31 +540,31 @@ function pong202()
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
-            end
-            % each block should contain 128 frames of data - process each
-            % of these one-by-one
-            for frame = 1:framesPerBlock
-                % expect 4 bytes to be timestamp as int32
-                [amplifierTimestamps(1, amplifierTimestampsIndex), rawIndex] = int32ReadFromArray(waveformArray, rawIndex);
-                amplifierTimestamps(1, amplifierTimestampsIndex) = timestep * amplifierTimestamps(1, amplifierTimestampsIndex);
-                % parse all bands of amplifier channels
-                for channel = 1:numAmpChannels
-                    if strcmp(currentPlotBand, 'Wide')
-                        % 2 bytes of wide, then 2 bytes of low (ignored)
-                        % then 2 bytes of high (ignored)
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
-                        rawIndex = rawIndex + (2 * 2);
-                    elseif strcmp(currentPlotBand, 'Low')
-                        % 2 bytes of wide (ignored), then 2 bytes of low,
-                        % then 2 bytes of high (ignored)
-                        rawIndex = rawIndex + 2;
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
-                        rawIndex = rawIndex + 2;
-                    else
-                        % 2 bytes of wide (ignored), then 2 bytes of low
-                        % (ignored), then 2 bytes of high
-                        rawIndex = rawIndex + (2 * 2);
-                        [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                % each block should contain 128 frames of data - process each
+                % of these one-by-one
+                for frame = 1:framesPerBlock
+                    % expect 4 bytes to be timestamp as int32
+                    [amplifierTimestamps(1, amplifierTimestampsIndex), rawIndex] = int32ReadFromArray(waveformArray, rawIndex);
+                    amplifierTimestamps(1, amplifierTimestampsIndex) = timestep * amplifierTimestamps(1, amplifierTimestampsIndex);
+                    % parse all bands of amplifier channels
+                    for channel = 1:numAmpChannels
+                        if strcmp(currentPlotBand, 'Wide')
+                            % 2 bytes of wide, then 2 bytes of low (ignored)
+                            % then 2 bytes of high (ignored)
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                            rawIndex = rawIndex + (2 * 2);
+                        elseif strcmp(currentPlotBand, 'Low')
+                            % 2 bytes of wide (ignored), then 2 bytes of low,
+                            % then 2 bytes of high (ignored)
+                            rawIndex = rawIndex + 2;
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                            rawIndex = rawIndex + 2;
+                        else
+                            % 2 bytes of wide (ignored), then 2 bytes of low
+                            % (ignored), then 2 bytes of high
+                            rawIndex = rawIndex + (2 * 2);
+                            [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
+                        end
                     end
                 end
                 amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
@@ -576,6 +577,7 @@ function pong202()
         p1.data = amplifierData(1,:);
         p2.t = amplifierTimestamps;
         p2.data = amplifierData(2,:);
+        debugData = [debugData p1.data];
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
 
@@ -588,8 +590,8 @@ function pong202()
         for i=1:size(amplifierData,1)
             avg(i) = calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
         end
-        % fprintf("Avg1: "+avg(1)+"\n");
-        % fprintf("Avg2: "+avg(2)+"\n");
+        fprintf("Avg1: "+avg(1)+"\n");
+        fprintf("Avg2: "+avg(2)+"\n");
         p1.energyAlpha = avg(1);
         p2.energyAlpha = avg(2);
 %         p1.energyAlpha = mean(fft(p1.data));
@@ -601,7 +603,6 @@ function pong202()
         L = length(sampleData);
         Y = fft(sampleData);
         P2 = abs(Y/L);
-        P2 = Y/L;
         P1 = P2(1:round(L/2+1));
         P1(2:end-1) = 2*P1(2:end-1);
         bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
