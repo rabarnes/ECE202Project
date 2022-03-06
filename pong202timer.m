@@ -434,12 +434,13 @@ function pong202timer()
         fprintf("1\n");
         pause(1);
         fprintf("EYES OPEN\n");
-        p1.calibrate = 1;
-        pause(calibrationDuration);
-        p1.calibrate = 0;        
-        lowerThreshold = mean(p1.calibrationData);
+        p1.calibrate = 1; % start calibration
+        pause(calibrationDuration); % run calibration for calibrationDuration seconds
+        p1.calibrate = 0; % end calibration        
+        lowerThreshold = mean(p1.calibrationData); % process calibration data
+        p1.calibrationData = []; % clear calibration data after processing
         fprintf("\nopen eye calculation complete\n")
-        pause(2);
+        pause(5);
 
         % eyes closed portion
         fprintf("\nplayer 1, keep your eyes closed for the second part of the calibration\n")
@@ -452,10 +453,11 @@ function pong202timer()
         fprintf("1\n");
         pause(1);
         fprintf("EYES CLOSED\n")
-        p1.calibrate = 1;
-        pause(calibrationDuration);
-        p1.calibrate = 0;        
-        upperThreshold = mean(p1.calibrationData);
+        p1.calibrate = 1; % start calibration
+        pause(calibrationDuration); % run calibration for calibrationDuration seconds
+        p1.calibrate = 0; % end calibration
+        upperThreshold = mean(p1.calibrationData); % process calibration data
+        p1.calibrationData = []; % clear calibration data after processing
         fprintf("\nclosed eye calculation complete\n");
         
         % calculate threshold value
@@ -483,11 +485,13 @@ function pong202timer()
         fprintf("1\n");
         pause(1);
         fprintf("EYES OPEN\n")
-        p2.calibrate = 1;
-        pause(calibrationDuration);
-        p2.calibrate = 0;        
-        lowerThreshold = mean(p2.calibrationData);
+        p2.calibrate = 1; % start calibration
+        pause(calibrationDuration); % run calibration for calibrationDuration seconds
+        p2.calibrate = 0; % end calibration        
+        lowerThreshold = mean(p2.calibrationData); % process calibration data
+        p2.calibrationData = []; % clear calibration data after processing
         fprintf("\nopen eye calculation complete\n")
+        pause(5);
         
         % eyes closed portion
         fprintf("\nplayer 2, keep your eyes closed for the second part of the calibration\n")
@@ -500,10 +504,11 @@ function pong202timer()
         fprintf("1\n");
         pause(1);
         fprintf("EYES CLOSED\n")
-        p2.calibrate = 1;
-        pause(calibrationDuration);
-        p2.calibrate = 0;        
-        upperThreshold = mean(p2.calibrationData);
+        p2.calibrate = 1; % start calibration
+        pause(calibrationDuration); % run calibration for calibrationDuration seconds
+        p2.calibrate = 0; % end calibration
+        upperThreshold = mean(p2.calibrationData); % process calibration data
+        p2.calibrationData = []; % clear calibration data after processing
         fprintf("\nclosed eye calculation complete\n");
         
         % calculate threshold value
