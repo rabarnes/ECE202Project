@@ -1,3 +1,4 @@
 *.bak
 *.asv
+*.rhd
 __pycache__
