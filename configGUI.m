@@ -1,28 +1,36 @@
 function configGUI()
-fig = uifigure('Name','Configure GUI');
-fig.Position = [200 300 400 250];
+figConfig = uifigure('Name','Configure GUI');
+figConfig.Position = [200 300 400 250];
 
 global p1 p2
 p1 = struct('configState',0);
 p2 = struct('configState',0);
 
-lbl_1 = uilabel(fig);
-lbl_1.Text = 'Configure Player 1';
-lbl_1.Position = [50 200 100 15];
-lbl_1a = uilabel(fig);
-lbl_1a.Text = 'Record with eyes open';
-lbl_1a.Position = [40 130 130 15];
+ttl_p1 = uilabel(figConfig);
+ttl_p1.Text = 'Configure Player 1';
+ttl_p1.Position = [50 200 100 15];
+txt_p1 = uilabel(figConfig);
+txt_p1.Text = 'Record with eyes open';
+txt_p1.Position = [40 130 130 15];
 
-lbl_2 = uilabel(fig);
-lbl_2.Text = 'Configure Player 2';
-lbl_2.Position = [250 200 100 15];
-lbl_2a = uilabel(fig);
-lbl_2a.Text = 'Record with eyes open';
-lbl_2a.Position = [240 130 130 15];
+ttl_p2 = uilabel(figConfig);
+ttl_p2.Text = 'Configure Player 2';
+ttl_p2.Position = [250 200 100 15];
+txt_p2 = uilabel(figConfig);
+txt_p2.Text = 'Record with eyes open';
+txt_p2.Position = [240 130 130 15];
 
-btn1 = uibutton(fig,'push','Position',[50, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(btn1,event) configPlayer1(btn1,lbl_1a));
-btn2 = uibutton(fig,'push','Position',[250, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(btn2,event) configPlayer2(btn2,lbl_2a));
+cfgBtnP1 = uibutton(figConfig,'push','Position',[50, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(cfgBtnP1,event) configPlayer1(cfgBtnP1,txt_p1));
+cfgBtnP2 = uibutton(figConfig,'push','Position',[250, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(cfgBtnP2,event) configPlayer2(cfgBtnP2,txt_p2));
 
+% btn1 = uibutton(figConfig,'push','Position',[50, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(btn1,event) configPlayer1(btn1,lbl_1a));
+% btn2 = uibutton(figConfig,'push','Position',[250, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(btn2,event) configPlayer2(btn2,lbl_2a));
+closeConfigBtn = uibutton(figConfig,'push','Position',[150, 50, 100, 22],'Text','Done','ButtonPushedFcn', @(closeConfigBtn,event) closeConfig(figConfig));
+
+
+function closeConfig(fig)
+    close(fig);
+end
 
 function configPlayer1(btn1,lbl)
     curState = p1.configState;
