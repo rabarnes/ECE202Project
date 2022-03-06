@@ -415,19 +415,27 @@ end
     % calibration functions
     % calibrate player 1 threshold
     function calibrateP1
-        % instruct player to have eyes open for t0 seconds
-        % instruct player to have eyes closed for t0 seconds
-        % find average energyAlpha over each time period
+        % instruct player to have eyes open for t0 seconds -> collectData() and processData() for 30sec would collect and process p1.data
+        % instruct player to have eyes closed for t0 seconds -> collectData() and processData() for next 30sec would collect and process p1.data
+        % find average energyAlpha over each time period -> avgEnergyAlpha = avg(p1.energyAlpha);
         % calculate threshold
+        % if(avgEnergyAlpha >= 7 & avgEnergyAlpha <= 13)
+        %   p1.threshold = 1
+        %  else
+        %   p1.threshold = 0;
         p1.threshold = 0;
     end
 
     % calibrate player 2 threshold
     function calibrateP2
-        % instruct player to have eyes open for t0 seconds
-        % instruct player to have eyes closed for t0 seconds
-        % find average energyAlpha over each time period
+        % instruct player to have eyes open for t0 seconds -> collectData() and processData() for 30sec would collect and process p1.data
+        % instruct player to have eyes closed for t0 seconds -> collectData() and processData() for next 30sec would collect and process p1.data
+        % find average energyAlpha over each time period -> avgEnergyAlpha = avg(p1.energyAlpha);
         % calculate threshold
+        % if(avgEnergyAlpha >= 7 & avgEnergyAlpha <= 13)
+        %   p2.threshold = 1
+        %  else
+        %   p2.threshold = 0;
         p2.threshold = 0;
     end
 
