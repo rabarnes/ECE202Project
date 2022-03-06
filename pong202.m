@@ -122,6 +122,12 @@ function pong202()
                'ButtonPushedFcn', @(bPong,event) startGame(figMain));
 
 
+    bClose = uibutton(figMain,'push',...
+                'Text', 'Exit', ...
+               'Position',[350, 100, 100, 22],...
+               'ButtonPushedFcn', @(bClose,event) closeMainGui(figMain));
+
+
     function configGUI()
         figConfig = uifigure('Name','Configure GUI');
         figConfig.Position = [200 300 400 250];
@@ -260,6 +266,16 @@ function pong202()
         pause(10);
         stop(tData);
         delete(tData);
+    end
+
+    function closeMainGui(figMain)
+        try
+            %delete(timerfindall);
+            close all;
+            close(figMain);
+        catch
+            warning("Closing GUI resulted in error");
+        end
     end
                   
     % connect: button to connect to TCP port (callback function connect),
