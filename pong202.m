@@ -210,15 +210,15 @@ function pong202()
     function fullTest
         connect;
         start(tData);
-        calibrateP1;
-        calibrateP2;
+%         calibrateP1;
+%         calibrateP2;
     %     display(p1.threshold);
     %     display(p2.threshold);
     
         fprintf("\n--------------------------------------------------------------------\n")
         fprintf("STARTING GAME\n")
         start(tGame);
-        pause(10);
+        pause(7);
         p1.energyAlpha = 10;
         p2.energyAlpha = 10;
         pause(10);
@@ -349,7 +349,7 @@ function pong202()
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
-            end
+          
             % each block should contain 128 frames of data - process each
             % of these one-by-one
             for frame = 1:framesPerBlock
@@ -376,6 +376,7 @@ function pong202()
                         [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                     end
                 end
+            end
                 amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
             end
         end
@@ -395,15 +396,11 @@ function pong202()
     function processData
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        for i=1:size(amplifierData,1)
-            avg(i) = calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
-        end
-        fprintf("Avg1: "+avg(1)+"\n");
-        fprintf("Avg2: "+avg(2)+"\n");
-        p1.energyAlpha = avg(1);
-        p2.energyAlpha = avg(2);
-%         p1.energyAlpha = mean(fft(p1.data));
-%         p2.energyAlpha = mean(fft(p2.data));
+        p1.energyAlpha=calcEnergyAvg(p1.data, fs, fLow, fHigh);
+        fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
+        p2.energyAlpha=calcEnergyAvg(p2.data,fs, fLow, fHigh);
+        fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
+        
     end
 
     % calcEngeryAvg calculates the average of magnitude within the frequency
@@ -411,12 +408,11 @@ function pong202()
         L = length(sampleData);
         Y = fft(sampleData);
         P2 = abs(Y/L);
-        P2 = Y/L;
         P1 = P2(1:round(L/2+1));
         P1(2:end-1) = 2*P1(2:end-1);
         bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-        avg = sum(P1(bins)) / size(bins,1);
-        % avg = sum(P1(bins).^2) / size(bins,1);
+%         avg = sum(P1(bins)) / size(bins,1);
+        avg = mean(P1(bins).^2);
     end
 
     function bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq)
