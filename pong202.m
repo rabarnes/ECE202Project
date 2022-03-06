@@ -61,7 +61,7 @@ function pong202timer()
     currentPlotBand = 1;
 
     % use alpha waves (7-13Hz) by default (can be modified later)
-    fLow = 10; fHigh = 13;
+    fLow = 7; fHigh = 13;
 
     % define p1, p2
     p1 = struct('t',[], ...
@@ -199,7 +199,7 @@ function pong202timer()
      start(tData);
      start(tGame);
 % 
-     pause(30);
+     pause(5);
     stop(tData);
      stop(tGame);
      delete(tData);
@@ -367,21 +367,21 @@ function pong202timer()
         for i=1:size(amplifierData,1)
             avg(i)=calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
         end
-         avg(1);
-         avg(2);
-%         p1.energyAlpha = mean(fft(p1.data));
-%         p2.energyAlpha = mean(fft(p2.data));
+        fprintf("Avg1: "+avg(1)+"\n")
+        fprintf("Avg2: "+avg(2)+"\n")
+        p1.energyAlpha=avg(1);
+        p1.energyAlpha=avg(2);
     end
 
     function onDataTimer(~,~)
         collectData;
     end
 %%
-function avg = calcEnergyAvg(sampleData, fs, lowBoundFreq, upBoundFreq)
-    L = size(sampleData, 1);
+function [avg, bins] = calcEnergyAvg(sampleData, fs, lowBoundFreq, upBoundFreq)
+    L = length(sampleData);
     Y = fft(sampleData);
     P2 = abs(Y/L);
-    P1 = P2(1:L/2+1);
+    P1 = P2(1:round(L/2+1));
     P1(2:end-1) = 2*P1(2:end-1);
     bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq);
     avg = sum(P1(bins)) / size(bins,1);
@@ -400,7 +400,7 @@ end
 %
 function bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq)
     bins = [];
-    for binNum = 1:L/2
+    for binNum = 1:round(L/2)
         binFreq = fs/(2*L)*(2*(binNum-1));
         if(binFreq <= upBoundFreq && binFreq >= lowBoundFreq)
             bins = [bins, binNum];
