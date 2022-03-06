@@ -174,6 +174,7 @@ function pong202()
                 pause(calibrationDuration);
                 p1.calibrate = 0; % end calibration
                 p1.upperThreshold = mean(p1.calibrationData); % process calibration data
+                fprintf("Player 1 upperThreshold: %f \n", p1.upperThreshold)
                 p1.calibrationData = []; % clear calibration data after processing
                 configPlayer1(btn1,lbl)
             elseif p1.configState == 4
@@ -205,6 +206,7 @@ function pong202()
                 pause(calibrationDuration);
                 p2.calibrate = 0; % end calibration   
                 p2.lowerThreshold = mean(p2.calibrationData); % process calibration data
+                fprintf("Player 2 lowerThreshold: %f \n", p2.lowerThreshold)
                 p2.calibrationData = []; % clear calibration data after processing
                 configPlayer2(btn2,lbl)
             elseif p2.configState == 2
@@ -219,6 +221,7 @@ function pong202()
                 pause(calibrationDuration);
                 p2.calibrate = 0; % end calibration
                 p2.upperThreshold = mean(p2.calibrationData); % process calibration data
+                fprintf("Player 2 upperThreshold: %f \n", p2.upperThreshold)
                 p2.calibrationData = []; % clear calibration data after processing
                 configPlayer2(btn2,lbl)
             elseif p2.configState == 4
@@ -569,8 +572,8 @@ function pong202()
         for i=1:size(amplifierData,1)
             avg(i) = calcEnergyAvg(amplifierData(i,:), fs, fLow, fHigh);
         end
-        fprintf("Avg1: "+avg(1)+"\n");
-        fprintf("Avg2: "+avg(2)+"\n");
+        % fprintf("Avg1: "+avg(1)+"\n");
+        % fprintf("Avg2: "+avg(2)+"\n");
         p1.energyAlpha = avg(1);
         p2.energyAlpha = avg(2);
 %         p1.energyAlpha = mean(fft(p1.data));
