@@ -411,11 +411,11 @@ function pong202()
         L = length(sampleData);
         Y = fft(sampleData);
         P2 = abs(Y/L);
-        P2 = Y/L;
+        %P2 = Y/L;
         P1 = P2(1:round(L/2+1));
         P1(2:end-1) = 2*P1(2:end-1);
         bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-        avg = sum(P1(bins)) / size(bins,1);
+        avg = sum(P1(bins)) / length(bins);
         % avg = sum(P1(bins).^2) / size(bins,1);
     end
 
@@ -427,7 +427,7 @@ function pong202()
                 bins = [bins, binNum];
             end
         end
-        if(size(bins,1) == 0)
+        if(isempty(bins))
             fprintf("Not enough resolution for bins!")
         end
     end
