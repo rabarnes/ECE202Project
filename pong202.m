@@ -36,7 +36,7 @@
 % between the noise level (i.e. no alpha waves) and the alpha wave level
 %
 
-function debugData = pong202()
+function pong202()
     close all; clear; clc;
     delete(timerfindall);
     %% --------------------------------------------------------------------
@@ -70,7 +70,6 @@ function debugData = pong202()
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
     currentPlotBand = 1;
-    debugData = [];
 
     % define p1, p2
     p1 = struct('t',[], ...
@@ -577,7 +576,6 @@ function debugData = pong202()
         p1.data = amplifierData(1,:);
         p2.t = amplifierTimestamps;
         p2.data = amplifierData(2,:);
-        debugData = [debugData p1.data];
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
 
