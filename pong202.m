@@ -47,7 +47,7 @@ function pong202()
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
     dataPeriod = 0.08; % time between data collection attempts
     thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
-    calibrationDuration = 2; % time (seconds) for each calibration step
+    calibrationDuration = 5; % time (seconds) for each calibration step
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -156,8 +156,10 @@ function pong202()
                 btn1.BackgroundColor ='g';
                 p1.calibrate = 1; % start calibration
                 pause(calibrationDuration);
-                p1.calibrate = 0; % end calibration   
+                p1.calibrate = 0; % end calibration
+                display(p1.calibrationData);
                 p1.lowerThreshold = mean(p1.calibrationData); % process calibration data
+                fprintf("Player 1 lowerThreshold: %f \n", p1.lowerThreshold)
                 p1.calibrationData = []; % clear calibration data after processing
                 configPlayer1(btn1,lbl)
             elseif p1.configState == 2
