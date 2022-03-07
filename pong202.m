@@ -52,16 +52,12 @@ function pong202()
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
     dataPeriod = 0.08; % time between data collection attempts
     thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
-<<<<<<< Updated upstream
-    calibrationDuration = 10; % time (seconds) for each calibration step
-=======
     calibrationDuration = 20; % time (seconds) for each calibration step
     % flags
     filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
     plotFlag = 1; % set 1 to plot time series data live
 %     numRepsBeforeProcess = 3; % number of data retrievals before processing data
     fftLength = 5120; % set length of fft
->>>>>>> Stashed changes
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -83,10 +79,6 @@ function pong202()
     amplifierTimestamps = [];
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
-<<<<<<< Updated upstream
-    currentPlotBand = 1;
-
-=======
     currentPlotBand = 'Low';
     channels = [1, 2];
    
@@ -95,7 +87,6 @@ function pong202()
 
     minAxis = 0;
     maxAxis = 0;
->>>>>>> Stashed changes
     % define p1, p2
     p1 = struct('t',[], ...
         'data', [], ...
@@ -103,6 +94,9 @@ function pong202()
         'threshold', 0, ...
         'direction', 1, ...
         'calibrate', 0, ...
+        'lowerThreshold', 0, ...
+        'upperThreshold', 0, ...
+        'configState', 0, ...
         'calibrationData', []);
 
     p2 = struct('t',[], ...
@@ -111,53 +105,29 @@ function pong202()
         'threshold', 0, ...
         'direction', 1, ...
         'calibrate', 0, ...
+        'lowerThreshold', 0, ...
+        'upperThreshold', 0, ...
+        'configState', 0, ...
         'calibrationData', []);
 
     %% --------------------------------------------------------------------
     %% initialize GUI
-<<<<<<< Updated upstream
-    % TODO: add GUI initilization here; should add the following buttons
-    %    figMain=uifigure;
-    figMain=uifigure;
-=======
     figMain = uifigure('Name','EEG Pong Control Pannel');
     figMain.Position = [200 300 500 250];
->>>>>>> Stashed changes
     
     % button to connect to board
     bConnect = uibutton(figMain,'push',...
                 'Text', 'Connect', ...
-<<<<<<< Updated upstream
-               'Position',[50, 218, 100, 22],...
-               'ButtonPushedFcn', @(btn,event) connect);
-=======
                'Position',[50, 200, 100, 22],...
                'ButtonPushedFcn', @(bConnect,event) connect);
 
->>>>>>> Stashed changes
     bCalibration = uibutton(figMain,'push',...
                 'Text', 'OpenCalibration GUI', ...
-               'Position',[175, 218, 100, 22],...
-               'ButtonPushedFcn', @(btn,event) calibration); 
+               'Position',[175, 200, 150, 22],...
+               'ButtonPushedFcn', @(bCalibration,event) configGUI); 
 
     bPong = uibutton(figMain,'push',...
                 'Text', 'Play Pong', ...
-<<<<<<< Updated upstream
-               'Position',[400, 218, 100, 22],...
-               'ButtonPushedFcn', @(btn,event) game);
-                  
-    % connect: button to connect to TCP port (callback function connect),
-    % start timers for data collection, data processing
-    %
-    % calibrateP1: button to start p1 calibration; it would be good to
-    % have separate calibrations for each player so that it is easier to
-    % debug; calls calibrateP1 as callback function
-    %
-    % calibrateP2: button to start p2 calibration;  calls calibrateP2 as 
-    % callback function
-    % 
-    % start game: button to start game; calls game as callback function
-=======
                'Position',[350, 200, 100, 22],...
                'ButtonPushedFcn', @(bPong,event) startGame(figMain));
 
@@ -308,7 +278,6 @@ function pong202()
             warning("Closing GUI resulted in error");
         end
     end
->>>>>>> Stashed changes
 
     %% --------------------------------------------------------------------
     % set up pong game figure
@@ -391,12 +360,8 @@ function pong202()
     % test commands
     % can add test commands here to test if code is working; example:
 %     gameTest;
-<<<<<<< Updated upstream
-    fullTest;
-=======
 %     fullTest;
 
->>>>>>> Stashed changes
 
     % full test, including connecting to TCP, calibration for both players,
     % running game
@@ -473,6 +438,7 @@ function pong202()
 %                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledwide true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledlow true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledhigh true;'];
+                commandString = [commandString ' set ' channelName '.tcpdataoutputenabledspike false;'];
                 sendCommand(commandString);
             end
     
@@ -485,8 +451,8 @@ function pong202()
         % mark system as running
         stopped = 0;
 
-        numBanprocesserChannel = 3;
-        numAmplifierBands = numBanprocesserChannel * numAmpChannels;
+        numBandsPerChannel = 2;
+        numAmplifierBands = numBandsPerChannel * numAmpChannels;
         
         waveformBytesPerFrame = 4 + 2 * numAmplifierBands;
         waveformBytesPerBlock = framesPerBlock * waveformBytesPerFrame + 4;
@@ -521,6 +487,7 @@ function pong202()
         % read waveform data in 10-block chunks
         if twaveformdata.BytesAvailable >= waveformBytes10Blocks
             drawnow;
+            % fprintf("Num of bytes avaible: %d \n", twaveformdata.BytesAvailable);
 
             % track which 10-block chunk has just come in; if there have
             % already been 10 blocks plotted, reset to 1
@@ -535,16 +502,14 @@ function pong202()
             end
 
             waveformArray = read(twaveformdata, waveformBytes10Blocks);
+            % fprintf("Length of waveformArray: %d \n", length(waveformArray));
             rawIndex = 1;
 
             for block = 1:blocksPerRead
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
-<<<<<<< Updated upstream
-=======
 %                 fprintf("Magic Num Check: %x \n", magicNumber);
->>>>>>> Stashed changes
           
                 % each block should contain 128 frames of data - process each
                 % of these one-by-one
@@ -572,8 +537,8 @@ function pong202()
                             [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                         end
                     end
+                    amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
                 end
-                amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
             end
             % For every 10 chunks, recalculate the minimum and maximum time
             % values that will be plotted (and should be used both during spike
@@ -596,9 +561,6 @@ function pong202()
             p1.data = amplifierData(1,:);
             p2.t = amplifierTimestamps;
             p2.data = amplifierData(2,:);
-<<<<<<< Updated upstream
-            processData;
-=======
             
             % plot the time series data if checked
             if plotFlag == 1
@@ -609,7 +571,6 @@ function pong202()
             amplifierTimestampsIndex = 1;
 
             processData; % process the data if new data is collected
->>>>>>> Stashed changes
         end
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
