@@ -75,7 +75,7 @@ function pong202()
     amplifierTimestamps = [];
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
-    currentPlotBand = 1;
+    currentPlotBand = 'High';
 
     % define p1, p2
     p1 = struct('t',[], ...
@@ -128,6 +128,12 @@ function pong202()
                'ButtonPushedFcn', @(bPong,event) startGame(figMain));
 
 
+    bClose = uibutton(figMain,'push',...
+                'Text', 'Exit', ...
+               'Position',[350, 100, 100, 22],...
+               'ButtonPushedFcn', @(bClose,event) closeMainGui(figMain));
+
+
     function configGUI()
         figConfig = uifigure('Name','Configure GUI');
         figConfig.Position = [200 300 400 250];
@@ -163,7 +169,7 @@ function pong202()
                 p1.calibrate = 1; % start calibration
                 pause(calibrationDuration);
                 p1.calibrate = 0; % end calibration
-                display(p1.calibrationData);
+                % display(p1.calibrationData);
                 p1.lowerThreshold = mean(p1.calibrationData); % process calibration data
                 fprintf("Player 1 lowerThreshold: %f \n", p1.lowerThreshold)
                 p1.calibrationData = []; % clear calibration data after processing
@@ -266,6 +272,16 @@ function pong202()
         pause(10);
         stop(tData);
         delete(tData);
+    end
+
+    function closeMainGui(figMain)
+        try
+            %delete(timerfindall);
+            close all;
+            close(figMain);
+        catch
+            warning("Closing GUI resulted in error");
+        end
     end
                   
     % connect: button to connect to TCP port (callback function connect),
@@ -459,6 +475,7 @@ function pong202()
                 commandString = ['set' channelName '.tcpdataoutputenabled true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledlow true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledhigh true;'];
+                commandString = [commandString ' set ' channelName '.tcpdataoutputenabledspike false;'];
                 sendCommand(commandString);
             end
     
@@ -471,8 +488,8 @@ function pong202()
         % mark system as running
         stopped = 0;
 
-        numBanprocesserChannel = 3;
-        numAmplifierBands = numBanprocesserChannel * numAmpChannels;
+        numBandsPerChannel = 2;
+        numAmplifierBands = numBandsPerChannel * numAmpChannels;
         
         waveformBytesPerFrame = 4 + 2 * numAmplifierBands;
         waveformBytesPerBlock = framesPerBlock * waveformBytesPerFrame + 4;
@@ -506,6 +523,7 @@ function pong202()
         % read waveform data in 10-block chunks
         if twaveformdata.BytesAvailable >= waveformBytes10Blocks
             drawnow;
+            % fprintf("Num of bytes avaible: %d \n", twaveformdata.BytesAvailable);
 
             % track which 10-block chunk has just come in; if there have
             % already been 10 blocks plotted, reset to 1
@@ -520,12 +538,17 @@ function pong202()
             end
 
             waveformArray = read(twaveformdata, waveformBytes10Blocks);
+            % fprintf("Length of waveformArray: %d \n", length(waveformArray));
             rawIndex = 1;
 
             for block = 1:blocksPerRead
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
+                % fprintf("Magic Num Check: %x \n", magicNumber);
+                if magicNumber ~= 0x2ef07a08
+                    fprintf(1, 'Error... block %d magic number incorrect.\n', block);
+                end
           
                 % each block should contain 128 frames of data - process each
                 % of these one-by-one
@@ -549,12 +572,13 @@ function pong202()
                         else
                             % 2 bytes of wide (ignored), then 2 bytes of low
                             % (ignored), then 2 bytes of high
-                            rawIndex = rawIndex + (2 * 2);
+                            %rawIndex = rawIndex + (2 * 2);
+                            rawIndex = rawIndex + 2;
                             [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                         end
                     end
+                    amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
                 end
-                amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
             end
             amplifierData = 0.195 * (amplifierData - 32768);
 
@@ -564,6 +588,8 @@ function pong202()
             p2.t = amplifierTimestamps;
             p2.data = amplifierData(2,:);
             processData;
+            % Reset timestamp index
+            amplifierTimestampsIndex = 1;
         end
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
