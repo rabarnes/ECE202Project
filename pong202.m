@@ -133,6 +133,7 @@ function pong202()
                'Position',[350, 100, 100, 22],...
                'ButtonPushedFcn', @(bClose,event) closeMainGui(figMain));
 
+    figMain.DeleteFcn = @deleteDataCollection;
 
     function configGUI()
         figConfig = uifigure('Name','Configure GUI');
@@ -864,6 +865,12 @@ function pong202()
         stop(tGame);
         delete(tGame);
         fprintf("\nGAME OVER\n\n")
+    end
+
+    function deleteDataCollection(~,~)
+        stop(tData);
+        delete(tData);
+        fprintf("DATA COLLECTION TERMINATED\n\n")
     end
 
     %% --------------------------------------------------------------------
