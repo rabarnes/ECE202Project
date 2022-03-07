@@ -42,9 +42,8 @@
 function pong202()
     close all; clear; clc;
     delete(timerfindall);
-    % debug variables that can be made ouptuts to the function
-%     debugTime = [];
-%     debugData = [];
+    x=load("lp10k.mat","lp10k");
+
     %% --------------------------------------------------------------------
     % tuning parameters
     fLow = 7; fHigh = 13; % use alpha waves (7-13Hz) by default (can be modified later)
@@ -53,7 +52,16 @@ function pong202()
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
     dataPeriod = 0.08; % time between data collection attempts
     thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
+<<<<<<< Updated upstream
     calibrationDuration = 10; % time (seconds) for each calibration step
+=======
+    calibrationDuration = 20; % time (seconds) for each calibration step
+    % flags
+    filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
+    plotFlag = 1; % set 1 to plot time series data live
+%     numRepsBeforeProcess = 3; % number of data retrievals before processing data
+    fftLength = 5120; % set length of fft
+>>>>>>> Stashed changes
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -61,7 +69,7 @@ function pong202()
     tcommand = [];
     twaveformdata = [];
     typeString = [];
-    fs = 0;
+    fs = 10e3;
     timestep = 0;
     numAmpChannels = 2;
     initialized = 0;
@@ -75,8 +83,19 @@ function pong202()
     amplifierTimestamps = [];
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
+<<<<<<< Updated upstream
     currentPlotBand = 1;
 
+=======
+    currentPlotBand = 'Low';
+    channels = [1, 2];
+   
+    ampDataFigure = figure(10);
+    ampDataFigure.Name = ['Amplifier Data - ', currentPlotBand];
+
+    minAxis = 0;
+    maxAxis = 0;
+>>>>>>> Stashed changes
     % define p1, p2
     p1 = struct('t',[], ...
         'data', [], ...
@@ -94,18 +113,28 @@ function pong202()
         'calibrate', 0, ...
         'calibrationData', []);
 
-%     endGame = 0;
-
     %% --------------------------------------------------------------------
     %% initialize GUI
+<<<<<<< Updated upstream
     % TODO: add GUI initilization here; should add the following buttons
     %    figMain=uifigure;
     figMain=uifigure;
+=======
+    figMain = uifigure('Name','EEG Pong Control Pannel');
+    figMain.Position = [200 300 500 250];
+>>>>>>> Stashed changes
     
+    % button to connect to board
     bConnect = uibutton(figMain,'push',...
                 'Text', 'Connect', ...
+<<<<<<< Updated upstream
                'Position',[50, 218, 100, 22],...
                'ButtonPushedFcn', @(btn,event) connect);
+=======
+               'Position',[50, 200, 100, 22],...
+               'ButtonPushedFcn', @(bConnect,event) connect);
+
+>>>>>>> Stashed changes
     bCalibration = uibutton(figMain,'push',...
                 'Text', 'OpenCalibration GUI', ...
                'Position',[175, 218, 100, 22],...
@@ -113,6 +142,7 @@ function pong202()
 
     bPong = uibutton(figMain,'push',...
                 'Text', 'Play Pong', ...
+<<<<<<< Updated upstream
                'Position',[400, 218, 100, 22],...
                'ButtonPushedFcn', @(btn,event) game);
                   
@@ -127,6 +157,158 @@ function pong202()
     % callback function
     % 
     % start game: button to start game; calls game as callback function
+=======
+               'Position',[350, 200, 100, 22],...
+               'ButtonPushedFcn', @(bPong,event) startGame(figMain));
+
+
+    bClose = uibutton(figMain,'push',...
+                'Text', 'Exit', ...
+               'Position',[350, 100, 100, 22],...
+               'ButtonPushedFcn', @(bClose,event) closeMainGui(figMain));
+
+    figMain.DeleteFcn = @deleteDataCollection;
+
+    function configGUI()
+        figConfig = uifigure('Name','Configure GUI');
+        figConfig.Position = [200 300 400 250];
+        
+        ttl_p1 = uilabel(figConfig);
+        ttl_p1.Text = 'Configure Player 1';
+        ttl_p1.Position = [50 200 100 15];
+        txt_p1 = uilabel(figConfig);
+        txt_p1.Text = 'Record with eyes open';
+        txt_p1.Position = [40 130 130 15];
+        
+        ttl_p2 = uilabel(figConfig);
+        ttl_p2.Text = 'Configure Player 2';
+        ttl_p2.Position = [250 200 100 15];
+        txt_p2 = uilabel(figConfig);
+        txt_p2.Text = 'Record with eyes open';
+        txt_p2.Position = [240 130 130 15];
+        
+        cfgBtnP1 = uibutton(figConfig,'push','Position',[50, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(cfgBtnP1,event) configPlayer1(cfgBtnP1,txt_p1));
+        cfgBtnP2 = uibutton(figConfig,'push','Position',[250, 100, 100, 22],'Text','Start Recording','ButtonPushedFcn', @(cfgBtnP2,event) configPlayer2(cfgBtnP2,txt_p2));
+        closeConfigBtn = uibutton(figConfig,'push','Position',[150, 50, 100, 22],'Text','Done','ButtonPushedFcn', @(closeConfigBtn,event) closeConfig(figConfig));
+
+        function closeConfig(fig)
+            close(fig);
+        end
+
+        function configPlayer1(btn1,lbl)
+            curState = p1.configState;
+            p1.configState = curState + 1;
+            if p1.configState == 1
+                btn1.Text = "Recording";
+                btn1.BackgroundColor ='g';
+                p1.calibrate = 1; % start calibration
+                pause(calibrationDuration);
+                p1.calibrate = 0; % end calibration
+                % display(p1.calibrationData);
+                p1.lowerThreshold = mean(p1.calibrationData); % process calibration data
+                fprintf("Player 1 lowerThreshold: %f \n", p1.lowerThreshold)
+                p1.calibrationData = []; % clear calibration data after processing
+                configPlayer1(btn1,lbl)
+            elseif p1.configState == 2
+                lbl.Text = 'Record with eyes Closed';
+                lbl.Position = [30 130 135 15];
+                btn1.Text = "Start Recording";
+                btn1.BackgroundColor = [0.96 0.96 0.96];
+            elseif p1.configState == 3
+                btn1.Text = "Recording";
+                btn1.BackgroundColor ='g';
+                p1.calibrate = 1; % start calibration
+                pause(calibrationDuration);
+                p1.calibrate = 0; % end calibration
+                p1.upperThreshold = mean(p1.calibrationData); % process calibration data
+                fprintf("Player 1 upperThreshold: %f \n", p1.upperThreshold)
+                p1.calibrationData = []; % clear calibration data after processing
+                configPlayer1(btn1,lbl)
+            elseif p1.configState == 4
+                lbl.Text = 'Done Configuring';
+                lbl.Position = [55 130 100 15];
+                btn1.Text = "Restart";
+                btn1.BackgroundColor = [0.96 0.96 0.96];
+                try
+                    p1.threshold = thresholdSkew*(p1.lowerThreshold+p1.upperThreshold);
+                catch
+                    warning("Calaculation of Player 1 Threshold Failed.");
+                end
+                fprintf("Player 1 Threshold: %f \n", p1.threshold)
+            else
+                lbl.Text = 'Record with eyes open';
+                lbl.Position = [40 130 130 15];
+                btn1.Text = "Start Recording";
+                p1.configState= 0;
+            end
+        end
+        
+        function configPlayer2(btn2,lbl)
+            curState = p2.configState;
+            p2.configState = curState + 1;
+            if p2.configState == 1
+                btn2.Text = "Recording";
+                btn2.BackgroundColor ='g';
+                p2.calibrate = 1; % start calibration
+                pause(calibrationDuration);
+                p2.calibrate = 0; % end calibration   
+                p2.lowerThreshold = mean(p2.calibrationData); % process calibration data
+                fprintf("Player 2 lowerThreshold: %f \n", p2.lowerThreshold)
+                p2.calibrationData = []; % clear calibration data after processing
+                configPlayer2(btn2,lbl)
+            elseif p2.configState == 2
+                lbl.Text = 'Record with eyes Closed';
+                lbl.Position = [230 130 135 15];
+                btn2.Text = "Start Recording";
+                btn2.BackgroundColor = [0.96 0.96 0.96];
+            elseif p2.configState == 3
+                btn2.Text = "Recording";
+                btn2.BackgroundColor ='g';
+                p2.calibrate = 1; % start calibration
+                pause(calibrationDuration);
+                p2.calibrate = 0; % end calibration
+                p2.upperThreshold = mean(p2.calibrationData); % process calibration data
+                fprintf("Player 2 upperThreshold: %f \n", p2.upperThreshold)
+                p2.calibrationData = []; % clear calibration data after processing
+                configPlayer2(btn2,lbl)
+            elseif p2.configState == 4
+                lbl.Text = 'Done Configuring';
+                lbl.Position = [255 130 100 15];
+                btn2.Text = "Restart";
+                btn2.BackgroundColor = [0.96 0.96 0.96];
+                try
+                    p2.threshold = thresholdSkew*(p2.lowerThreshold+p2.upperThreshold);
+                catch
+                    warning("Calaculation of Player 2 Threshold Failed.");
+                end
+                fprintf("Player 2 Threshold: %f \n", p2.threshold)
+            else
+                lbl.Text = 'Record with eyes open';
+                lbl.Position = [240 130 130 15];
+                btn2.Text = "Start Recording";
+                p2.configState= 0;
+            end
+        end
+    end
+
+    function startGame(figMain)
+        fprintf("\n--------------------------------------------------------------------\n")
+        fprintf("STARTING GAME\n")
+        figMain.Visible = 'off';
+
+        start(tGame);
+    end
+
+    function closeMainGui(figMain)
+        try
+            %delete(timerfindall);
+            close all;
+            close(figMain);
+        catch
+            warning("Closing GUI resulted in error");
+        end
+    end
+>>>>>>> Stashed changes
 
     %% --------------------------------------------------------------------
     % set up pong game figure
@@ -209,7 +391,12 @@ function pong202()
     % test commands
     % can add test commands here to test if code is working; example:
 %     gameTest;
+<<<<<<< Updated upstream
     fullTest;
+=======
+%     fullTest;
+
+>>>>>>> Stashed changes
 
     % full test, including connecting to TCP, calibration for both players,
     % running game
@@ -280,9 +467,10 @@ function pong202()
     
             % send TCP commands to set up TCP Data Output Enabled for all bands
             % of 1 channel
-            for channel = 1:numAmpChannels
-                channelName = ['a-' num2str(channel - 1, '%03d')];
+            for i = 1:length(channels)
+                channelName = ['a-' num2str(channels(i) - 1, '%03d')];
                 commandString = ['set' channelName '.tcpdataoutputenabled true;'];
+%                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledwide true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledlow true;'];
                 commandString = [commandString ' set ' channelName '.tcpdataoutputenabledhigh true;'];
                 sendCommand(commandString);
@@ -311,10 +499,11 @@ function pong202()
         amplifierTimestampsIndex = 1;
 
         chunkCounter = 0;
-
+        
         % start board running
         fprintf("streaming data...\n");
         write(tcommand, uint8('set runmode run'));
+        start(tData);
     end
 
     %% --------------------------------------------------------------------
@@ -352,6 +541,10 @@ function pong202()
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
+<<<<<<< Updated upstream
+=======
+%                 fprintf("Magic Num Check: %x \n", magicNumber);
+>>>>>>> Stashed changes
           
                 % each block should contain 128 frames of data - process each
                 % of these one-by-one
@@ -369,7 +562,7 @@ function pong202()
                         elseif strcmp(currentPlotBand, 'Low')
                             % 2 bytes of wide (ignored), then 2 bytes of low,
                             % then 2 bytes of high (ignored)
-                            rawIndex = rawIndex + 2;
+%                             rawIndex = rawIndex + 2;
                             [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                             rawIndex = rawIndex + 2;
                         else
@@ -382,14 +575,41 @@ function pong202()
                 end
                 amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
             end
+            % For every 10 chunks, recalculate the minimum and maximum time
+            % values that will be plotted (and should be used both during spike
+            % and waveform plotting)
+            if chunkCounter == 1
+                minAxis = amplifierTimestamps(1,1);
+                maxAxis = minAxis + 100 * framesPerBlock * timestep;
+            end
             amplifierData = 0.195 * (amplifierData - 32768);
+    
 
-            % 
+            % plot the filter data if checked
+            if filterFlag == 1
+                filterData;
+                fprintf("filteringData");
+            end
+
+            % update p1 and p2 data/timestamps
             p1.t = amplifierTimestamps;
             p1.data = amplifierData(1,:);
             p2.t = amplifierTimestamps;
             p2.data = amplifierData(2,:);
+<<<<<<< Updated upstream
             processData;
+=======
+            
+            % plot the time series data if checked
+            if plotFlag == 1
+                plotTimeSeries;
+            end
+
+            % Reset timestamp index
+            amplifierTimestampsIndex = 1;
+
+            processData; % process the data if new data is collected
+>>>>>>> Stashed changes
         end
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
@@ -400,43 +620,56 @@ function pong202()
     function processData
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
-        p1.energyAlpha=calcEnergyAvg(p1.data, fs, fLow, fHigh);
+        p1.energyAlpha=calcEnergyBand(p1.data, fs, fLow, fHigh);
 %         fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
-        p2.energyAlpha=calcEnergyAvg(p2.data,fs, fLow, fHigh);
+        p2.energyAlpha=calcEnergyBand(p2.data,fs, fLow, fHigh);
 %         fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
-%         debugData = [debugData p1.energyAlpha];
-%         debugTime = [debugTime p1.t];
-%         debugData = [debugData p1.data];
     end
 
-    % calcEnergyAvg calculates the average of magnitude within the frequency
-    function [avg, bins] = calcEnergyAvg(sampleData, Fs, lowBoundFreq, upBoundFreq)
-        L = length(sampleData);
-        Y = fft(sampleData);
-        P2 = abs(Y/L);
-        P1 = P2(1:round(L/2+1));
-        P1(2:end-1) = 2*P1(2:end-1);
-        bins = chooseBins(Fs, L, lowBoundFreq, upBoundFreq);
-%         avg = sum(P1(bins)) / size(bins,1);
-        avg = mean(P1(bins).^2);
+    % calcEnergyBand calculates the average of magnitude within the frequency
+    function energy = calcEnergyBand(fs,x, fLow, fHigh)
+        fx = fftshift(fft(x,fftLength));
+        N = length(x);
+        df = fs/N;
+        f = -fs/2:df:fs/2-df;
+        energy = sum(abs(fx((f>=fLow)&(f<=fHigh)).^2));
     end
 
-    function bins = chooseBins(fs, L, lowBoundFreq, upBoundFreq)
-        bins = [];
-        for binNum = 1:round(L/2)
-            binFreq = fs/(2*L)*(2*(binNum-1));
-            if(binFreq <= upBoundFreq && binFreq >= lowBoundFreq)
-                bins = [bins, binNum];
-            end
+    % filter data
+    function filterData()
+        p1.data = filtfilt(x.lp10k,1,amplifierData(1,:));
+        p2.data = filtfilt(x.lp10k,1,amplifierData(2,:));
+    end
+
+    % plot time series data
+    function plotTimeSeries()
+        figure(ampDataFigure);
+        subplot(2,1,1);
+        % For every 10 chunks, plot with hold 'off' to clear the
+        % previous plot. In all other cases, plot with hold 'on' to add
+        % each 10 data-block chunk to the previous chunks
+        if chunkCounter ~= 1
+            hold on
         end
-        if(size(bins,1) == 0)
-            fprintf("Not enough resolution for bins!")
+        plot(amplifierTimestamps, p1.data, 'Color', 'blue');
+        hold off;
+        title('Player 1');
+        axis([minAxis maxAxis -400 400]);
+        subplot(2,1,2);
+        if chunkCounter ~= 1
+            hold on
         end
+        plot(amplifierTimestamps, p2.data, 'Color', 'blue');
+        hold off;
+        title('Player 2');
+        axis([minAxis maxAxis -400 400]);
+        subplot(2,1,2);
     end
 
+
+    % code to run on timer callback
     function onDataTimer(~,~)
         collectData;
-        processData;
         if p1.calibrate == 1
             p1.calibrationData = [p1.calibrationData p1.energyAlpha];
         end
@@ -664,6 +897,16 @@ function pong202()
         stop(tGame);
         delete(tGame);
         fprintf("\nGAME OVER\n\n")
+%         figure;
+%         plot(1:length(debugData),debugData);
+%         save("debugData","debugData");
+    end
+
+    % delete data collection
+    function deleteDataCollection(~,~)
+        stop(tData);
+        delete(tData);
+        fprintf("DATA COLLECTION TERMINATED\n\n");
     end
 
     %% --------------------------------------------------------------------
