@@ -55,7 +55,7 @@ function pong202()
     calibrationDuration = 20; % time (seconds) for each calibration step
     % flags
     filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
-    plotFlag = 1; % set 1 to plot time series data live
+    plotFlag = 0; % set 1 to plot time series data live
 %     numRepsBeforeProcess = 3; % number of data retrievals before processing data
     fftLength = 5120; % set length of fft
 
@@ -80,7 +80,7 @@ function pong202()
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
     currentPlotBand = 'Low';
-    channels = [1, 2];
+    channels = [10, 11];
    
     ampDataFigure = figure(10);
     ampDataFigure.Name = ['Amplifier Data - ', currentPlotBand];
@@ -582,18 +582,18 @@ function pong202()
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
         p1.energyAlpha=calcEnergyBand(p1.data, fs, fLow, fHigh);
-%         fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
+        fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
         p2.energyAlpha=calcEnergyBand(p2.data,fs, fLow, fHigh);
 %         fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
     end
 
     % calcEnergyBand calculates the average of magnitude within the frequency
-    function energy = calcEnergyBand(fs,x, fLow, fHigh)
+    function energy = calcEnergyBand(x, fs, fLow, fHigh)
         fx = fftshift(fft(x,fftLength));
-        N = length(x);
-        df = fs/N;
+        df = fs/fftLength;
         f = -fs/2:df:fs/2-df;
         energy = sum(abs(fx((f>=fLow)&(f<=fHigh)).^2));
+        energy = bandpower(x,fs,[fLow fHigh]); % https://raphaelvallat.com/bandpower.html uses this approach
     end
 
     % filter data
