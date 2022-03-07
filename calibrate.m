@@ -1,5 +1,13 @@
 close all; clc;
 
+s = load("waveIntan.mat", "waveformArray");
+intan =  s.waveformArray;
+clear("s");
+s = load("wavePong.mat", "waveformArray");
+pong =  s.waveformArray;
+clear("s");
+
+
 
 % calcEngeryAvg calculates the average of magnitude within the frequency
 % range bounded by lowBoundFreq and upBoundFreq.

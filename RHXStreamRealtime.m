@@ -255,6 +255,7 @@ while get(runButtonGroup.Children(2), 'Value')
         for block = 1:blocksPerRead
             % Expect 4 bytes to be TCP Magic Number as uint32.
             % If not what's expected, print that there was an error.
+            fprintf("Block %d start: rawIdx before read Magicnum = %d\n", block, rawIndex);
             [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
             if magicNumber ~= 0x2ef07a08
                 fprintf(1, 'Error... block %d magic number incorrect.\n', block);
@@ -311,7 +312,6 @@ while get(runButtonGroup.Children(2), 'Value')
         
         % Scale these 10 data blocks
         amplifierData = 0.195 * (amplifierData - 32768);
-
         % Plot
         % Amp channels
         figure(ampDataFigure);

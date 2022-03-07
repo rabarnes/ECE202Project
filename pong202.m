@@ -471,7 +471,7 @@ function pong202()
         % mark system as running
         stopped = 0;
 
-        numBanprocesserChannel = 3;
+        numBanprocesserChannel = 2; % what?
         numAmplifierBands = numBanprocesserChannel * numAmpChannels;
         
         waveformBytesPerFrame = 4 + 2 * numAmplifierBands;
@@ -500,8 +500,8 @@ function pong202()
         end
         
         % reset amplifierData, amplifierTimestamps
-        amplifierData = 32768 * ones(numAmpChannels, framesPerBlock * 10);
-        amplifierTimestamps = zeros(1, framesPerBlock * 10);
+%         amplifierData = 32768 * ones(numAmpChannels, framesPerBlock * 10);
+%         amplifierTimestamps = zeros(1, framesPerBlock * 10);
 
         % read waveform data in 10-block chunks
         if twaveformdata.BytesAvailable >= waveformBytes10Blocks
@@ -525,7 +525,11 @@ function pong202()
             for block = 1:blocksPerRead
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
+                fprintf("Block %d start: rawIdx before read Magicnum = %d\n", block, rawIndex);
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
+                if magicNumber ~= 0x2ef07a08
+                    fprintf(1, 'Error... block %d magic number incorrect.\n', block);
+                end
           
                 % each block should contain 128 frames of data - process each
                 % of these one-by-one
@@ -552,16 +556,18 @@ function pong202()
                             rawIndex = rawIndex + (2 * 2);
                             [amplifierData(channel, amplifierTimestampsIndex), rawIndex] = uint16ReadFromArray(waveformArray, rawIndex);
                         end
+              
                     end
                     amplifierTimestampsIndex = amplifierTimestampsIndex + 1;
                 end
                 
             end
+            
             amplifierData = 0.195 * (amplifierData - 32768);
 
             % 
             p1.t = amplifierTimestamps;
-            p1.data = amplifierData(1,:);
+            p1.data = amplifierData(1,:);sin
             p2.t = amplifierTimestamps;
             p2.data = amplifierData(2,:);
             processData;
