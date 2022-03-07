@@ -75,7 +75,7 @@ function pong202()
     amplifierTimestamps = [];
     amplifierTimestampsIndex = 1;
     chunkCounter = 0;
-    currentPlotBand = 1;
+    currentPlotBand = '';
 
     % define p1, p2
     p1 = struct('t',[], ...
