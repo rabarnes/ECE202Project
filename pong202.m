@@ -545,7 +545,10 @@ function pong202()
                 % expect 4 bytes to be TCP magic number as uint32
                 % if not what's expected, print there was an error
                 [magicNumber, rawIndex] = uint32ReadFromArray(waveformArray, rawIndex);
-                fprintf("Magic Num Check: %x \n", magicNumber);
+                % fprintf("Magic Num Check: %x \n", magicNumber);
+                if magicNumber ~= 0x2ef07a08
+                    fprintf(1, 'Error... block %d magic number incorrect.\n', block);
+                end
           
                 % each block should contain 128 frames of data - process each
                 % of these one-by-one
