@@ -51,12 +51,12 @@ function pong202()
     paddleVelocityFast = 0.01; % paddle rate when alpha waves not detected
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
     dataPeriod = 0.05; % time between data collection attempts
-    thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
+    thresholdSkew = 0.3; % can favor higher or lower threshold (smaller value makes it more sensitive)
     calibrationDuration = 15; % time (seconds) for each calibration step
     % flags
     filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
     plotFlag = 0; % set 1 to plot time series data live
-    numRepsBeforeProcess = 5; % number of data retrievals before processing data
+    numRepsBeforeProcess = 6; % number of data retrievals before processing data
     fftLength = 1280*2*numRepsBeforeProcess; % set length of fft
 
     %% --------------------------------------------------------------------
@@ -202,7 +202,7 @@ function pong202()
                 btn1.Text = "Restart";
                 btn1.BackgroundColor = [0.96 0.96 0.96];
                 try
-                    p1.threshold = thresholdSkew*(p1.lowerThreshold+p1.upperThreshold);
+                    p1.threshold = ((1-thresholdSkew)*p1.lowerThreshold)+(thresholdSkew*p1.upperThreshold);%thresholdSkew*(p1.lowerThreshold+p1.upperThreshold);
                 catch
                     warning("Calaculation of Player 1 Threshold Failed.");
                 end
@@ -249,7 +249,7 @@ function pong202()
                 btn2.Text = "Restart";
                 btn2.BackgroundColor = [0.96 0.96 0.96];
                 try
-                    p2.threshold = thresholdSkew*(p2.lowerThreshold+p2.upperThreshold);
+                    p2.threshold = ((1-thresholdSkew)*p2.lowerThreshold)+(thresholdSkew*p2.upperThreshold);
                 catch
                     warning("Calaculation of Player 2 Threshold Failed.");
                 end
@@ -564,19 +564,20 @@ function pong202()
             p2.t(1+(repCount-1)*1280:1280*repCount) = amplifierTimestamps;
             p2.data(1+(repCount-1)*1280:1280*repCount) = amplifierData(2,:);
             
-            % only process data after certain amount of data has been
-            % collected
-            if repCount < numRepsBeforeProcess
-                repCount = repCount+1;
-            else
-                processData;
-                repCount = 1;
-            end
-%             p1.t = [p1.t(1:end-1280) amplifierTimestamps];
-%             p1.data = [p1.data(1:end-1280) amplifierData(1,:)];
+%             % only process data after certain amount of data has been
+%             % collected
+%             if repCount < numRepsBeforeProcess
+%                 repCount = repCount+1;
+%             else
+%                 processData;
+%                 repCount = 1;
+%             end
+            p1.t = [p1.t(1281:end) amplifierTimestamps];
+            p1.data = [p1.data(1281:end) amplifierData(1,:)];
 %             fprintf("length: "+length(p1.data) + "min "+min(p1.data)+" max" +max(p1.data)+"\n");
-%             p2.t = [p2.t(1:end-1280) amplifierTimestamps];
-%             p2.data = [p2.data(1:end-1280) amplifierData(2,:)];
+            p2.t = [p2.t(1281:end) amplifierTimestamps];
+            p2.data = [p2.data(1281:end) amplifierData(2,:)];
+            processData;
 
             % plot the time series data if checked
             if plotFlag == 1
@@ -598,7 +599,7 @@ function pong202()
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
         p1.energyAlpha=calcEnergyBand(p1.data, fs, fLow, fHigh);
-        fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
+%         fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
         p2.energyAlpha=calcEnergyBand(p2.data,fs, fLow, fHigh);
 %         fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
     end
