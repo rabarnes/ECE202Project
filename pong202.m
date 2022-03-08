@@ -47,17 +47,20 @@ function pong202()
     %% --------------------------------------------------------------------
     % tuning parameters
     fLow = 7; fHigh = 13; % use alpha waves (7-13Hz) by default (can be modified later)
-    ballVelocity = 0.002; % ball speed
+    ballVelocity = 0.003; % ball speed
     paddleVelocityFast = 0.01; % paddle rate when alpha waves not detected
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
-    dataPeriod = 0.05; % time between data collection attempts
+    dataPeriod = 0.08; % time between data collection attempts
     thresholdSkew = 0.3; % can favor higher or lower threshold (smaller value makes it more sensitive)
     calibrationDuration = 15; % time (seconds) for each calibration step
+    numRepsBeforeProcess = 7; % number of data retrievals before processing data
+%     fftLength = 1280*2*numRepsBeforeProcess; % set length of fft
+
     % flags
     filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
     plotFlag = 0; % set 1 to plot time series data live
-    numRepsBeforeProcess = 6; % number of data retrievals before processing data
-    fftLength = 1280*2*numRepsBeforeProcess; % set length of fft
+    alphaEnergyPrintFlag = 1; % set 1 to print alpha energy values
+
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -320,7 +323,7 @@ function pong202()
         'VerticalAlignment', 'middle', ...
         'FontSize', 72);
     % draw paddles
-    ph = 0.2;
+    ph = 0.3;
     pw = 0.02;
     paddleP1 = rectangle(ax, ...
         'Position', [0, .5 - .5 * ph, pw, ph], ...
@@ -569,6 +572,7 @@ function pong202()
 %             if repCount < numRepsBeforeProcess
 %                 repCount = repCount+1;
 %             else
+%                 fprintf("min: "+min(p2.data)+"min 1: "+min(p1.data));
 %                 processData;
 %                 repCount = 1;
 %             end
@@ -599,9 +603,10 @@ function pong202()
         % compute fft of data
         % determine total energy (i.e. sum(val.^2)) between fLow, fHigh
         p1.energyAlpha=calcEnergyBand(p1.data, fs, fLow, fHigh);
-%         fprintf("Alpha data 1: "+p1.energyAlpha+"\n");
         p2.energyAlpha=calcEnergyBand(p2.data,fs, fLow, fHigh);
-%         fprintf("Alpha data 2: "+p1.energyAlpha+"\n");
+        if alphaEnergyPrintFlag
+            fprintf("alpha energy: "+p1.energyAlpha+"             "+p2.energyAlpha+"\n");
+        end
     end
 
     % calcEnergyBand calculates the average of magnitude within the frequency
@@ -654,110 +659,6 @@ function pong202()
         if p2.calibrate == 1
             p2.calibrationData = [p2.calibrationData p2.energyAlpha];
         end
-    end
-
-    %% --------------------------------------------------------------------
-    % calibration functions
-    % calibrate player 1 threshold
-    function calibrateP1
-        % instruct player to have eyes open for t0 seconds
-        % instruct player to have eyes closed for t0 seconds
-        % find average energyAlpha over each time period
-
-        % eyes open portion
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("STARTING PLAYER 1 CALIBRATION\n")
-        fprintf("\nplayer 1, keep your eyes open for the first part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES OPEN\n");
-        p1.calibrate = 1; % start calibration
-        pause(calibrationDuration); % run calibration for calibrationDuration seconds
-        p1.calibrate = 0; % end calibration        
-        lowerThreshold = mean(p1.calibrationData); % process calibration data
-        p1.calibrationData = []; % clear calibration data after processing
-        fprintf("\nopen eye calculation complete\n")
-        pause(5);
-
-        % eyes closed portion
-        fprintf("\nplayer 1, keep your eyes closed for the second part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES CLOSED\n")
-        p1.calibrate = 1; % start calibration
-        pause(calibrationDuration); % run calibration for calibrationDuration seconds
-        p1.calibrate = 0; % end calibration
-        upperThreshold = mean(p1.calibrationData); % process calibration data
-        p1.calibrationData = []; % clear calibration data after processing
-        fprintf("\nclosed eye calculation complete\n");
-        
-        % calculate threshold value
-        p1.threshold = thresholdSkew*(lowerThreshold+upperThreshold);
-        fprintf("\nplayer 1 threshold calculated, player 1 calibration complete\n")
-        pause(1);
-    end
-
-    % calibrate player 2 threshold
-    function calibrateP2
-        % instruct player to have eyes open for t0 seconds -> collectData() and processData() for 30sec would collect and process p1.data
-        % instruct player to have eyes closed for t0 seconds -> collectData() and processData() for next 30sec would collect and process p1.data
-        % find average energyAlpha over each time period -> avgEnergyAlpha = avg(p1.energyAlpha);
-        % calculate threshold
-        % eyes open portion
-        fprintf("\n--------------------------------------------------------------------\n")
-        fprintf("STARTING PLAYER 2 CALIBRATION\n")
-        fprintf("\nplayer 2, keep your eyes open for the first part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES OPEN\n")
-        p2.calibrate = 1; % start calibration
-        pause(calibrationDuration); % run calibration for calibrationDuration seconds
-        p2.calibrate = 0; % end calibration        
-        lowerThreshold = mean(p2.calibrationData); % process calibration data
-        p2.calibrationData = []; % clear calibration data after processing
-        fprintf("\nopen eye calculation complete\n")
-        pause(5);
-        
-        % eyes closed portion
-        fprintf("\nplayer 2, keep your eyes closed for the second part of the calibration\n")
-        fprintf("starting in:\n");
-        pause(1);
-        fprintf("3\n");
-        pause(1);
-        fprintf("2\n");
-        pause(1);
-        fprintf("1\n");
-        pause(1);
-        fprintf("EYES CLOSED\n")
-        p2.calibrate = 1; % start calibration
-        pause(calibrationDuration); % run calibration for calibrationDuration seconds
-        p2.calibrate = 0; % end calibration
-        upperThreshold = mean(p2.calibrationData); % process calibration data
-        p2.calibrationData = []; % clear calibration data after processing
-        fprintf("\nclosed eye calculation complete\n");
-        
-        % calculate threshold value
-        p2.threshold = thresholdSkew*(lowerThreshold+upperThreshold);
-        fprintf("\nplayer 2 threshold calculated, player 2 calibration complete\n")
-        pause(1);
     end
 
     %% --------------------------------------------------------------------
