@@ -47,17 +47,17 @@ function pong202()
     %% --------------------------------------------------------------------
     % tuning parameters
     fLow = 7; fHigh = 13; % use alpha waves (7-13Hz) by default (can be modified later)
-    ballVelocity = 0.005; % ball speed
+    ballVelocity = 0.002; % ball speed
     paddleVelocityFast = 0.01; % paddle rate when alpha waves not detected
     paddleVelocitySlow = 0.001; % paddle rate when alpha waves detected
-    dataPeriod = 0.08; % time between data collection attempts
+    dataPeriod = 0.05; % time between data collection attempts
     thresholdSkew = 0.5; % can favor higher or lower threshold (smaller value makes it more sensitive)
-    calibrationDuration = 20; % time (seconds) for each calibration step
+    calibrationDuration = 15; % time (seconds) for each calibration step
     % flags
     filterFlag = 0; % set 1 to low-pass filter data using lp10k filter
     plotFlag = 0; % set 1 to plot time series data live
-%     numRepsBeforeProcess = 3; % number of data retrievals before processing data
-    fftLength = 5120; % set length of fft
+    numRepsBeforeProcess = 5; % number of data retrievals before processing data
+    fftLength = 1280*2*numRepsBeforeProcess; % set length of fft
 
     %% --------------------------------------------------------------------
     % initialize variables
@@ -81,15 +81,17 @@ function pong202()
     chunkCounter = 0;
     currentPlotBand = 'Low';
     channels = [10, 11];
-   
-    ampDataFigure = figure(10);
-    ampDataFigure.Name = ['Amplifier Data - ', currentPlotBand];
+    repCount = 1;
+    if plotFlag
+        ampDataFigure = figure(10);
+        ampDataFigure.Name = ['Amplifier Data - ', currentPlotBand];
+    end
 
     minAxis = 0;
     maxAxis = 0;
     % define p1, p2
-    p1 = struct('t',[], ...
-        'data', [], ...
+    p1 = struct('t',zeros(1,1280*numRepsBeforeProcess), ...
+        'data', zeros(1,1280*numRepsBeforeProcess), ...
         'energyAlpha', 0, ...
         'threshold', 0, ...
         'direction', 1, ...
@@ -99,8 +101,8 @@ function pong202()
         'configState', 0, ...
         'calibrationData', []);
 
-    p2 = struct('t',[], ...
-        'data', [], ...
+    p2 = struct('t',zeros(1,1280*numRepsBeforeProcess), ...
+        'data', zeros(1,1280*numRepsBeforeProcess), ...
         'energyAlpha', 0, ...
         'threshold', 0, ...
         'direction', 1, ...
@@ -555,13 +557,27 @@ function pong202()
                 filterData;
                 fprintf("filteringData");
             end
-
-            % update p1 and p2 data/timestamps
-            p1.t = amplifierTimestamps;
-            p1.data = amplifierData(1,:);
-            p2.t = amplifierTimestamps;
-            p2.data = amplifierData(2,:);
             
+            % update p1 and p2 data/timestamps
+            p1.t(1+(repCount-1)*1280:1280*repCount) = amplifierTimestamps;
+            p1.data(1+(repCount-1)*1280:1280*repCount) = amplifierData(1,:);
+            p2.t(1+(repCount-1)*1280:1280*repCount) = amplifierTimestamps;
+            p2.data(1+(repCount-1)*1280:1280*repCount) = amplifierData(2,:);
+            
+            % only process data after certain amount of data has been
+            % collected
+            if repCount < numRepsBeforeProcess
+                repCount = repCount+1;
+            else
+                processData;
+                repCount = 1;
+            end
+%             p1.t = [p1.t(1:end-1280) amplifierTimestamps];
+%             p1.data = [p1.data(1:end-1280) amplifierData(1,:)];
+%             fprintf("length: "+length(p1.data) + "min "+min(p1.data)+" max" +max(p1.data)+"\n");
+%             p2.t = [p2.t(1:end-1280) amplifierTimestamps];
+%             p2.data = [p2.data(1:end-1280) amplifierData(2,:)];
+
             % plot the time series data if checked
             if plotFlag == 1
                 plotTimeSeries;
@@ -570,7 +586,7 @@ function pong202()
             % Reset timestamp index
             amplifierTimestampsIndex = 1;
 
-            processData; % process the data if new data is collected
+%             processData; % process the data if new data is collected
         end
 %         fprintf("in queue (post collection): "+twaveformdata.BytesAvailable+"\n");
     end
@@ -589,17 +605,17 @@ function pong202()
 
     % calcEnergyBand calculates the average of magnitude within the frequency
     function energy = calcEnergyBand(x, fs, fLow, fHigh)
-        fx = fftshift(fft(x,fftLength));
-        df = fs/fftLength;
-        f = -fs/2:df:fs/2-df;
-        energy = sum(abs(fx((f>=fLow)&(f<=fHigh)).^2));
+%         fx = fftshift(fft(x,fftLength));
+%         df = fs/fftLength;
+%         f = -fs/2:df:fs/2-df;
+%         energy = sum(abs(fx((f>=fLow)&(f<=fHigh)).^2));
         energy = bandpower(x,fs,[fLow fHigh]); % https://raphaelvallat.com/bandpower.html uses this approach
     end
 
     % filter data
     function filterData()
-        p1.data = filtfilt(x.lp10k,1,amplifierData(1,:));
-        p2.data = filtfilt(x.lp10k,1,amplifierData(2,:));
+        amplifierData(1,:) = filtfilt(x.lp10k,1,amplifierData(1,:));
+        amplifierData(2,:) = filtfilt(x.lp10k,1,amplifierData(2,:));
     end
 
     % plot time series data
@@ -806,8 +822,10 @@ function pong202()
                 d = paddleP1.Position(2) + paddleP1.Position(4)/2 - newPos(2);
                 bvy = bvy - 0.1*d;
                 bvx = -bvx;
+                beep;
             else
                 incrementScore(2);
+                beep;
                 reset;
                 return
             end % if else
@@ -820,8 +838,10 @@ function pong202()
                 d = paddleP2.Position(2) + paddleP2.Position(4)/2 - newPos(2);
                 bvy = bvy - 0.1*d;
                 bvx = -bvx;
+                beep;
             else
                 incrementScore(1);
+                beep;
                 reset;
                 return
             end % if else
@@ -857,7 +877,10 @@ function pong202()
     function deletePong(~,~)
         stop(tGame);
         delete(tGame);
+        stop(tData);
+        delete(tData);
         fprintf("\nGAME OVER\n\n")
+        close all;
 %         figure;
 %         plot(1:length(debugData),debugData);
 %         save("debugData","debugData");
